@@ -1,0 +1,458 @@
+/* Views: maps (Germany, Aachen), the street canvases, and the panel cards every level shares. */
+
+.small {
+  font-size: var(--step--1);
+}
+.between {
+  justify-content: space-between;
+}
+.hint {
+  padding: 4px 2px;
+}
+.warn-text {
+  color: var(--warn-ink);
+  font-weight: 600;
+}
+.chip-accent::before {
+  background: var(--accent);
+}
+
+/* -- fidelity card: what this level knows ------------------------------------ */
+.fidelity {
+  border-left: 3px solid var(--accent);
+}
+.fidelity-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fidelity-level {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.kv-left dd {
+  text-align: left;
+}
+.fidelity .kv {
+  margin-top: 10px;
+}
+.feeds {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+.feeds li {
+  display: grid;
+  grid-template-columns: 1.2em 1fr;
+}
+.feed-arrow {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.stats {
+  margin: 8px 0 10px;
+}
+.stats .stat-value {
+  font-size: 1.25rem;
+}
+
+/* -- hour bars ----------------------------------------------------------------- */
+.hour-bars {
+  width: 100%;
+  height: 56px;
+  margin-top: 6px;
+}
+.hour-bars rect {
+  fill: var(--map-active);
+}
+.hour-bars rect.is-mark {
+  fill: var(--accent);
+}
+.hour-bars rect[data-jump-hour] {
+  cursor: pointer;
+}
+.hour-bars rect[data-jump-hour]:hover {
+  fill: var(--accent);
+  opacity: 0.7;
+}
+.hour-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--ink-3);
+}
+
+/* -- maps ---------------------------------------------------------------------- */
+.map-wrap {
+  background: var(--map-water);
+}
+.map {
+  width: 100%;
+  height: auto;
+}
+.map text {
+  font-family: var(--font-body);
+  fill: var(--ink-2);
+  paint-order: stroke;
+  stroke: var(--map-water);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.states path {
+  fill: var(--map-land);
+  stroke: var(--map-line);
+  stroke-width: 1;
+}
+.seg {
+  cursor: pointer;
+  outline: none;
+}
+.seg-hit {
+  stroke: transparent;
+  stroke-width: 14;
+}
+.seg-halo {
+  stroke: transparent;
+  stroke-linecap: round;
+}
+.seg-line {
+  stroke-linecap: round;
+  transition: stroke 0.4s;
+}
+.seg.is-hl .seg-halo {
+  stroke: var(--accent);
+  opacity: 0.45;
+}
+.seg.is-sel .seg-halo,
+.seg:focus-visible .seg-halo,
+.seg:hover .seg-halo {
+  stroke: var(--ink);
+  opacity: 0.35;
+}
+.city circle {
+  fill: var(--ink-2);
+}
+.city text {
+  font-size: 12px;
+}
+.city.is-border text {
+  font-size: 10.5px;
+  fill: var(--ink-3);
+}
+.twin-city {
+  cursor: pointer;
+  outline: none;
+}
+.twin-city .dot {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.twin-city .pulse {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: pulse 2.4s ease-out infinite;
+}
+.twin-city text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  fill: var(--ink);
+}
+.twin-city .cta {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12px;
+  fill: var(--accent);
+}
+.twin-city:hover .cta,
+.twin-city:focus-visible .cta {
+  text-decoration: underline;
+}
+@keyframes pulse {
+  from {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* city map */
+.zone circle {
+  fill: var(--map-land);
+  opacity: 0.55;
+}
+.zone text {
+  font-size: 11px;
+  fill: var(--ink-3);
+}
+.link {
+  cursor: pointer;
+  outline: none;
+}
+.link-hit {
+  stroke: transparent;
+  stroke-width: 16;
+}
+.link-sel {
+  stroke: transparent;
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+.link .dir {
+  stroke-linecap: round;
+}
+.link.cls-motorway .dir {
+  stroke-dasharray: none;
+}
+.link.is-hl .link-sel {
+  stroke: var(--accent);
+  opacity: 0.35;
+}
+.link.is-sel .link-sel,
+.link:hover .link-sel,
+.link:focus-visible .link-sel {
+  stroke: var(--ink);
+  opacity: 0.22;
+}
+.link-closed {
+  stroke: transparent;
+}
+.link.is-closed .link-closed {
+  stroke: var(--crit);
+  stroke-width: 3;
+  stroke-dasharray: 3 5;
+}
+.link.is-bus .link-sel {
+  stroke: var(--accent);
+  opacity: 0.5;
+  stroke-dasharray: 2 4;
+  stroke-width: 10;
+}
+.corridor-halo {
+  stroke: var(--accent);
+  stroke-width: 20;
+  stroke-linecap: round;
+  opacity: 0.16;
+  cursor: pointer;
+}
+.node circle {
+  fill: var(--surface);
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+}
+.node.kind-gateway circle {
+  fill: var(--ink-2);
+}
+.node.kind-motorway circle {
+  fill: var(--ink-3);
+}
+.node text {
+  font-size: 11.5px;
+}
+.node.kind-gateway text {
+  font-weight: 600;
+  fill: var(--ink);
+}
+.corridor-tag {
+  cursor: pointer;
+  outline: none;
+}
+.corridor-tag rect {
+  fill: var(--accent);
+}
+.corridor-tag line {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+.corridor-tag text {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--accent-ink);
+  stroke: none;
+}
+.corridor-tag:hover rect,
+.corridor-tag:focus-visible rect {
+  fill: var(--ink);
+}
+
+/* -- scenario workbench ------------------------------------------------------------ */
+.scenario .row {
+  margin-top: 8px;
+}
+.scenario-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--step--1);
+}
+.scenario-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scenario-list .btn {
+  min-height: 26px;
+  padding: 2px 8px;
+  margin-left: auto;
+}
+.scenario .kv {
+  margin-top: 10px;
+}
+.select-inline {
+  width: auto;
+  display: inline-block;
+  min-height: 30px;
+  padding: 3px 6px;
+}
+
+/* -- street canvases ----------------------------------------------------------------- */
+.canvas-card {
+  padding: 8px;
+}
+.canvas-card canvas {
+  display: block;
+  width: 100%;
+}
+.junctions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+.junction-card {
+  text-decoration: none;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.junction-card:hover {
+  border-color: var(--accent);
+}
+.junction-tabs .btn {
+  min-height: 30px;
+}
+.events .row {
+  margin-top: 8px;
+}
+
+/* -- ask the twin -------------------------------------------------------------------- */
+.ask {
+  border-top: 3px solid var(--accent);
+}
+.ask-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ask-free {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ask-miss {
+  margin-top: 8px;
+  font-size: var(--step--1);
+  color: var(--warn-ink);
+}
+.ask-suggest {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ask-chip {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+.ask-chip:hover {
+  border-color: var(--accent);
+}
+.ask-chip.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.ask-form {
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--step--1);
+  line-height: 2.2;
+}
+.answer {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.answer-q {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+.answer-headline {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.answer-body {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+.answer-table td:first-child {
+  white-space: normal;
+  min-width: 10em;
+}
+.answer-basis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+.ask-actions {
+  margin-top: 6px;
+}
+
+/* -- narrow screens -------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .ask-free {
+    flex-direction: column;
+  }
+  .map text {
+    font-size: 14px;
+  }
+}
