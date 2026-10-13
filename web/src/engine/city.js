@@ -13,7 +13,7 @@ import { haversineKm } from "./geo.js";
 import { OUTBOUND_SHARE, URBAN_PROFILE } from "./profiles.js";
 
 const DETOUR = 1.1;
-const CAR_TRIPS_PER_RESIDENT = 0.42; // home-based car trips leaving home per resident and day
+const CAR_TRIPS_PER_RESIDENT = 0.34; // car trips leaving home per resident and day; calibrated so total demand matches the earlier count checks (Aachen is a student city with low car use)
 const GRAVITY_BETA = 0.09; // per minute of travel time
 const MSA_ITERATIONS = 14;
 const BPR_BETA = 4;

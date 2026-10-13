@@ -1,7 +1,7 @@
 // Level 2: Aachen. The hourly city model on a schematic road network: each street direction
 // coloured by load, the planner's scenario workbench, and the corridors that open level 3.
 
-import { CORRIDORS, NODE_BY_ID, NODES, ZONES } from "../data/aachen.js";
+import { CORRIDORS, NODE_BY_ID, NODES, POPULATION_SOURCE, ZONES } from "../data/aachen.js";
 import { BASE_SCENARIO, edgeOf, LINK_INDEX, links } from "../engine/city.js";
 import { corridorDefs } from "../engine/twin.js";
 import { askHighlight, askPanel, bindAsk } from "./ask.js";
@@ -63,7 +63,7 @@ function mapSvg() {
     <g class="zones">
       ${ZONES.map((z) => {
         const [x, y] = xy[z.node];
-        return html`<g class="zone"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${zoneR(z).toFixed(1)}" /><text x="${x.toFixed(1)}" y="${(y + zoneR(z) + 12).toFixed(1)}" text-anchor="middle">${z.name}</text></g>`;
+        return html`<g class="zone"><title>${z.name}: ${z.pop.toLocaleString("en-US")} residents (${z.districts.join(", ")}; ${POPULATION_SOURCE}), about ${z.jobs.toLocaleString("en-US")} jobs (estimated)</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${zoneR(z).toFixed(1)}" /><text x="${x.toFixed(1)}" y="${(y + zoneR(z) + 12).toFixed(1)}" text-anchor="middle">${z.name}</text></g>`;
       })}
     </g>
     <g class="corridor-halos">
@@ -259,7 +259,7 @@ export function mount(view, ctx) {
         ${fidelityCard({
           level: 2,
           title: "Aachen · hourly model",
-          data: "Population and jobs per district (illustrative), lanes and speed limits from OpenStreetMap, motorway volumes from BASt counts",
+          data: "Official population per district (2024) and total jobs, lanes and speed limits from OpenStreetMap, motorway volumes from BASt counts; how jobs spread over districts is estimated",
           resolution: "Street link (1–8 km), one hour, both directions",
           update: "Recomputed for every hour and every scenario",
           feeds: [

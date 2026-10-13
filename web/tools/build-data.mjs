@@ -20,8 +20,8 @@ const out = path.join(root, "src", "data", "real");
 const UA = "MetaCity-build/0.1 (https://github.com/ETohidi/MetaCity)";
 const BAST_URL = "https://www.bast.de/DE/Themen/Digitales/HF_1/Massnahmen/verkehrszaehlung/Daten/2023_1/Jawe2023.csv?view=renderTcDataExportCSVAlleJahre";
 const BAST_PAGE = "https://www.bast.de/DE/Themen/Digitales/HF_1/Massnahmen/verkehrszaehlung/verkehrszaehlung.html";
-// The main Overpass server is often busy; the mirror serves the same data.
-const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+// The main Overpass server is often busy; the mirrors serve the same data.
+const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
 const AACHEN_BBOX = "50.70,5.97,50.86,6.27";
 const MIN_YEAR = 2020;
 

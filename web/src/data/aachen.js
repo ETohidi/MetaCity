@@ -24,6 +24,7 @@ export const NODES = [
   { id: "brand", name: "Brand", lon: 6.165, lat: 50.75, kind: "outer" },
   { id: "burtscheid", name: "Burtscheid", lon: 6.095, lat: 50.76, kind: "outer" },
   { id: "ronheide", name: "Ronheide", lon: 6.065, lat: 50.755, kind: "outer" },
+  { id: "madrider", name: "Madrider Ring", lon: 6.135, lat: 50.772, kind: "outer" },
   { id: "a4_laurensberg", name: "A4 Laurensberg", lon: 6.065, lat: 50.81, kind: "motorway" },
   { id: "a4_soers", name: "A4 Soers", lon: 6.1, lat: 50.815, kind: "motorway" },
   { id: "kreuz", name: "Aachener Kreuz", lon: 6.165, lat: 50.825, kind: "motorway" },
@@ -35,6 +36,7 @@ export const NODES = [
   { id: "gw_be", name: "A44 → Liège (BE)", lon: 6.1, lat: 50.7, kind: "gateway" },
   { id: "gw_vaals", name: "Vaals (NL)", lon: 6.015, lat: 50.775, kind: "gateway" },
   { id: "gw_kelmis", name: "Kelmis (BE)", lon: 6.04, lat: 50.73, kind: "gateway" },
+  { id: "gw_eupen", name: "Eupen (BE)", lon: 6.088, lat: 50.715, kind: "gateway" },
   { id: "gw_eifel", name: "Kornelimünster / Eifel", lon: 6.18, lat: 50.715, kind: "gateway" },
   { id: "gw_wuerselen", name: "Würselen", lon: 6.13, lat: 50.83, kind: "gateway" },
 ];
@@ -81,6 +83,14 @@ const ROWS = [
   ["tri4", "brand", "gw_eifel", "rural", "Trierer Straße → Eifel"],
   ["eil1", "europaplatz", "eilendorf", "arterial", "Europaplatz – Eilendorf"],
   ["eil2", "eilendorf", "a44_brand", "rural", "Eilendorf – A44"],
+  // Outer ring and radial alternatives (real streets, checked in OpenStreetMap; ends approximate)
+  ["tol", "laurensberg", "soers", "arterial", "Toledoring"],
+  ["prag", "soers", "haaren", "arterial", "Prager Ring"],
+  ["berl", "haaren", "madrider", "arterial", "Berliner Ring"],
+  ["madr", "madrider", "forst", "arterial", "Madrider Ring"],
+  ["adal", "kaiserplatz", "madrider", "arterial", "Adalbertsteinweg"],
+  ["hoh", "ronheide", "marschiertor", "arterial", "Hohenstaufenallee"],
+  ["eup", "marschiertor", "gw_eupen", "rural", "Eupener Straße"],
   ["a4w", "gw_nl", "a4_laurensberg", "motorway", "A4"],
   ["a4a", "a4_laurensberg", "a4_soers", "motorway", "A4"],
   ["a4b", "a4_soers", "kreuz", "motorway", "A4"],
@@ -95,20 +105,29 @@ const ROWS = [
 export const LINKS = ROWS.map(([id, from, to, cls, name]) => ({ id, from, to, cls, name }));
 
 // Traffic analysis zones: each loads onto one network node (or several, see Mitte).
+// Population: wohnberechtigte Bevölkerung 31.12.2024 of the city's statistical districts, summed
+// per zone (Stadt Aachen, Statistisches Jahrbuch 2024, table 2.20); 261,472 in total.
+// Jobs: the city total at the workplace (140,746 employees subject to social insurance,
+// 31.12.2024, table 3.5) spread over the zones by an illustrative estimate: no per-district
+// workplace figures are published.
+export const POPULATION_SOURCE = "Stadt Aachen, Statistisches Jahrbuch 2024 (31.12.2024)";
+/** Commuters across the city boundary, 2024 (Statistisches Jahrbuch 2024, table 3.13). */
+export const COMMUTERS = { in: 88022, out: 40951, source: "Stadt Aachen, Statistisches Jahrbuch 2024" };
 export const ZONES = [
   // The old town is mostly pedestrian: its car trips start and end at the garages on the ring.
-  { id: "mitte", name: "Mitte (old town)", node: "markt", nodes: ["ponttor", "hansemann", "marschiertor", "koenigstor"], pop: 38000, jobs: 52000 },
-  { id: "frankenberg", name: "Frankenberger Viertel", node: "kaiserplatz", pop: 26000, jobs: 9000 },
-  { id: "burtscheid", name: "Burtscheid", node: "burtscheid", pop: 24000, jobs: 8000 },
-  { id: "laurensberg", name: "Laurensberg", node: "laurensberg", pop: 22000, jobs: 6000 },
-  { id: "melaten", name: "Campus Melaten", node: "melaten", pop: 7000, jobs: 26000 },
-  { id: "soers", name: "Soers", node: "soers", pop: 6000, jobs: 4000 },
-  { id: "rotheerde", name: "Rothe Erde", node: "europaplatz", pop: 9000, jobs: 11000 },
-  { id: "haaren", name: "Haaren", node: "haaren", pop: 12000, jobs: 5000 },
-  { id: "eilendorf", name: "Eilendorf", node: "eilendorf", pop: 16000, jobs: 6000 },
-  { id: "forst", name: "Forst", node: "forst", pop: 15000, jobs: 7000 },
-  { id: "brand", name: "Brand", node: "brand", pop: 18000, jobs: 5000 },
-  { id: "west", name: "Hörn / Ronheide", node: "ronheide", pop: 14000, jobs: 4000 },
+  { id: "mitte", name: "Mitte (old town)", node: "markt", nodes: ["ponttor", "hansemann", "marschiertor", "koenigstor"], pop: 42914, jobs: 50100, districts: ["Markt", "Theater", "Lindenplatz", "St. Jakob", "Ponttor", "Hansemannplatz", "Marschiertor"] },
+  { id: "frankenberg", name: "Frankenberger Viertel", node: "kaiserplatz", pop: 44524, jobs: 8700, districts: ["Kaiserplatz", "Adalbertsteinweg", "Panneschopp", "Trierer Straße", "Frankenberg"] },
+  { id: "burtscheid", name: "Burtscheid", node: "burtscheid", pop: 35476, jobs: 7700, districts: ["Beverau", "Burtscheider Kurgarten", "Burtscheider Abtei", "Steinebrück", "Hangeweiher"] },
+  { id: "laurensberg", name: "Laurensberg / Richterich", node: "laurensberg", pop: 19364, jobs: 5800, districts: ["Laurensberg", "Stadtbezirk Richterich"] },
+  { id: "melaten", name: "Campus Melaten", node: "melaten", pop: 9697, jobs: 25100, districts: ["Vaalserquartier"] },
+  { id: "soers", name: "Soers", node: "soers", pop: 6134, jobs: 3850, districts: ["Soers", "Kalkofen"] },
+  { id: "rotheerde", name: "Rothe Erde", node: "europaplatz", pop: 10560, jobs: 10600, districts: ["Rothe Erde", "Jülicher Straße"] },
+  { id: "haaren", name: "Haaren", node: "haaren", pop: 12587, jobs: 4800, districts: ["Stadtbezirk Haaren"] },
+  { id: "eilendorf", name: "Eilendorf", node: "eilendorf", pop: 15800, jobs: 5800, districts: ["Stadtbezirk Eilendorf"] },
+  { id: "forst", name: "Forst", node: "forst", pop: 13414, jobs: 6750, districts: ["Forst"] },
+  { id: "brand", name: "Brand", node: "brand", pop: 17882, jobs: 4800, districts: ["Stadtbezirk Brand"] },
+  { id: "west", name: "Hörn / Ronheide", node: "ronheide", pop: 17617, jobs: 3850, districts: ["Westpark", "Hanbruch", "Hörn"] },
+  { id: "kornelimuenster", name: "Kornelimünster / Walheim", node: "gw_eifel", pop: 15503, jobs: 2896, districts: ["Stadtbezirk Kornelimünster/Walheim"] },
 ];
 
 // Where the city model meets the country model. Motorway gateways take their daily volume from
@@ -122,8 +141,9 @@ export const GATEWAYS = [
   { node: "gw_ddorf", segment: "A44-aachen-duesseldorf", toCity: 0.45, through: { gw_be: 0.6, gw_nl: 0.4 } },
   { node: "gw_be", segment: "A44-be-aachen", station: "AC-Lichtenbusch", toCity: 0.3, through: { gw_koeln: 0.6, gw_ddorf: 0.4 } },
   { node: "gw_vaals", daily: 9000, toCity: 1 },
-  { node: "gw_kelmis", daily: 6000, toCity: 1 },
-  { node: "gw_eifel", daily: 7000, toCity: 1 },
+  { node: "gw_kelmis", daily: 4000, toCity: 1 },
+  { node: "gw_eupen", daily: 5000, toCity: 1 },
+  { node: "gw_eifel", daily: 4000, toCity: 1 }, // beyond Kornelimünster, which is now a zone
   { node: "gw_wuerselen", daily: 12000, toCity: 1 },
 ];
 
