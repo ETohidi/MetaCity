@@ -27,3 +27,12 @@ test("the city model is checked against the real counting stations around Aachen
     assert.ok(ratio > 0.5 && ratio < 2, `${row[0]}: model/count ${ratio}`);
   }
 });
+
+test("every BASt station on the map has a position, a recent year and a plausible count", async () => {
+  const { stations } = await import("../src/engine/country.js");
+  assert.ok(stations.length > 1000);
+  for (const s of stations) {
+    assert.ok(s.lat > 47 && s.lat < 55.2 && s.lon > 5.8 && s.lon < 15.1, `${s.id} ${s.name}: ${s.lat},${s.lon}`);
+    assert.ok(s.year >= 2020 && s.dtv > 0, `${s.id}: ${s.year} ${s.dtv}`);
+  }
+});

@@ -154,6 +154,37 @@
   stroke: var(--ink);
   opacity: 0.35;
 }
+.station {
+  fill: var(--accent);
+  fill-opacity: 0.55;
+  stroke: var(--map-water);
+  stroke-width: 0.6;
+  cursor: pointer;
+}
+.station:hover,
+.station.is-sel {
+  fill-opacity: 1;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.stations.is-hidden {
+  display: none;
+}
+.legend-toggle {
+  min-height: 26px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.station-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.legend-toggle[aria-pressed="false"] .station-swatch {
+  opacity: 0.3;
+}
 .city circle {
   fill: var(--ink-2);
 }
