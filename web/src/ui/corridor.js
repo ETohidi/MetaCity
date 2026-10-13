@@ -572,6 +572,7 @@ export function mount(view, ctx) {
 
 function renderAsk(view, ctx) {
   const slot = view.querySelector("[data-ask-slot]");
+  if (!slot) return; // the viewer moved on while an answer was on its way
   const askCtx = { ...ctx, corridor: ctx.route.corridor };
   slot.innerHTML = String(askPanel("corridor", askCtx));
   bindAsk(slot, "corridor", askCtx, () => renderAsk(view, ctx));

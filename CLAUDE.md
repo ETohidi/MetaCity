@@ -3,7 +3,7 @@
 A browser-only traffic twin at four levels: Germany (motorway statistics) > Aachen (hourly
 macroscopic model) > corridor (vehicle simulation) > junction (sensor-mast view). Each level
 answers rule-based questions for its user (federal planner, municipal planner, driver).
-There is no backend and no LLM. Sibling of ../MetaHospital and ../MetaAgri, same conventions.
+There is no backend. An optional "Ask Claude" mode uses the viewer's own API key. Sibling of ../MetaHospital and ../MetaAgri, same conventions.
 
 ## Repo layout
 - web/                 the whole MVP (static site, no build step)
@@ -16,6 +16,8 @@ There is no backend and no LLM. Sibling of ../MetaHospital and ../MetaAgri, same
     - perception.js    what the twin knows: mast event classifiers (prompt-defined classes) and
                        connected-vehicle hazard reports -> alerts; incidents are simulation truth
     - ask.js           question catalogue per level, answers, free-text matching
+  - src/llm/claude.js   optional Claude layer: question catalogue as tools, manual tool loop,
+                       raw fetch to the Messages API (no SDK: no bundler), injectable fetch for tests
   - src/ui/            views: country.js, city.js, corridor.js (canvas), street3d.js (three.js junction,
                        loaded on demand), ask.js (panel), dom.js
   - src/data/          germany-roads.js, aachen.js (schematic network), germany.js (states)
@@ -32,6 +34,9 @@ There is no backend and no LLM. Sibling of ../MetaHospital and ../MetaAgri, same
   resetScenario(), addIncident(), clearIncidents(), setMastHealth(), reviewAlert() and reset().
 - Answers about events use perceived alerts, never simulation truth (label any truth as a check).
 - Every answer states its level, data basis, resolution and confidence.
+- Claude only reads the twin through its question tools; it never changes the twin (Apply stays a
+  human button). The API key stays in the browser (localStorage only if the viewer opts in) and
+  goes only to api.anthropic.com. Model claude-opus-5-5, effort low, fallbacks "default".
 - Build markup with the `html` tagged template from dom.js; colours only through base.css tokens.
 - Routes are plain hash tokens (`#germany`, `#aachen`, `#julicher`, `#julicher.j2`).
 - All numbers are simulated or illustrative; sensor masts are fictional. Say so in the UI.

@@ -38,6 +38,16 @@ which level and data it comes from, and how precise it is.
   queue length, incidents ahead, leave now or later.
 
 On the street you can also cause rare events: block a lane, or tamper with a sensor mast.
+The twin then has to *perceive* them: each mast runs a prompt-defined event classifier and
+connected vehicles send hazard warnings; together they raise alerts an operator confirms or
+dismisses. Drivers' answers use only what the twin perceives.
+
+**Ask Claude (optional).** Paste your own Anthropic API key and Claude answers in plain language,
+combining levels. It gets the question catalogue of every level as tools, so every number still
+comes from the twin; it cannot change the twin. The key stays in your browser.
+
+**3D junction.** The junction level has a three.js view with three cameras: orbit, the sensor
+mast's own view, and a driver following a connected vehicle with its green-light advice.
 
 ## Run it
 
@@ -61,9 +71,8 @@ and their sites are fictional.
 
 - Roadside sensor infrastructure and collective perception (RWTH ika: RITA, ACCorD, karl.):
   the junction level is a small, simulated version of that idea.
-- Synthetic Street Scenes / StreetPrompt: rare street events. Next, a video classifier on the
-  masts could raise the incidents that are now triggered by hand.
-- BoundlessNYC: procedural 3D cities in the browser. Next, a three.js street view for
-  levels 3 and 4.
+- Synthetic Street Scenes / StreetPrompt: rare street events and prompt-defined classifiers;
+  the masts' event detection imitates that (simulated, no video).
+- BoundlessNYC: procedural 3D cities in the browser; the 3D junction view borrows the idea.
 - Real data: BASt permanent counts for level 1, OpenStreetMap and city traffic counts for
   level 2, real detector feeds for level 3.
