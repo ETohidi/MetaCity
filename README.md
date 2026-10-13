@@ -54,18 +54,26 @@ mast's own view, and a driver following a connected vehicle with its green-light
 ```bash
 cd web
 npm test          # engine tests (node:test, no dependencies)
+npm run data      # refresh real data from BASt and OpenStreetMap
 npm run serve     # http://127.0.0.1:8090
 ```
 
 No build step and no npm dependencies. d3 is loaded from cdnjs. Pushing to `main` runs the
 tests and deploys `web/` to GitHub Pages.
 
-## Honesty notes
+## What is real and what is simulated
 
-Everything is simulated. Motorway volumes are illustrative, in the order of magnitude of the
-federal counting stations but not copied from them. The Aachen network is schematic, with
-real street names, approximate positions and rounded population and job figures. Sensor masts
-and their sites are fictional.
+| Data | Status | Source |
+|---|---|---|
+| Motorway volumes, truck shares, lanes (Germany level) | **Measured** on 37 of 41 segments | BASt automatic counting stations, 2020–2024, aggregated per segment |
+| Aachen motorway gateways | **Measured** where a station sits at the gateway | BASt (AC-Vetschau, AK Aachen (O), AC-Lichtenbusch) |
+| Street lanes and speed limits (Aachen level) | **Real** for 28 of 31 street links | © OpenStreetMap contributors, ODbL |
+| Population and jobs per district | Illustrative (rounded) | – |
+| Hourly flows, vehicles, queues, sensor masts, detections | Simulated | – |
+
+The Aachen question "How does the model compare with real motorway counts?" checks the city
+model against the BASt stations around Aachen (currently about 12% off on average). Refresh the
+real data with `npm run data`; see `web/src/data/real/SOURCES.md` for sources and terms.
 
 ## Inspiration and next steps
 
@@ -74,5 +82,5 @@ and their sites are fictional.
 - Synthetic Street Scenes / StreetPrompt: rare street events and prompt-defined classifiers;
   the masts' event detection imitates that (simulated, no video).
 - BoundlessNYC: procedural 3D cities in the browser; the 3D junction view borrows the idea.
-- Real data: BASt permanent counts for level 1, OpenStreetMap and city traffic counts for
-  level 2, real detector feeds for level 3.
+- More real data: district population and jobs (Aachen statistics), city traffic counts for
+  the arterials, and real detector feeds for the street level when they become available.

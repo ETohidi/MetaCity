@@ -112,14 +112,15 @@ export const ZONES = [
 ];
 
 // Where the city model meets the country model. Motorway gateways take their daily volume from
-// the Germany level (half the AADT of the named segment, i.e. one direction); `toCity` is the
+// the BASt counting station at the gateway when there is one, else from the Germany level
+// (half the AADT of the named segment, i.e. one direction); `toCity` is the
 // share that starts or ends inside Aachen, and `through` splits the rest across other gateways.
 // Local gateways have a fixed illustrative daily volume per direction.
 export const GATEWAYS = [
-  { node: "gw_koeln", segment: "A4-aachen-koeln", toCity: 0.42, through: { gw_nl: 0.45, gw_be: 0.55 } },
-  { node: "gw_nl", segment: "A4-nl-aachen", toCity: 0.35, through: { gw_koeln: 0.7, gw_ddorf: 0.3 } },
+  { node: "gw_koeln", segment: "A4-aachen-koeln", station: "AK Aachen (O)", toCity: 0.42, through: { gw_nl: 0.45, gw_be: 0.55 } },
+  { node: "gw_nl", segment: "A4-nl-aachen", station: "AC-Vetschau", toCity: 0.35, through: { gw_koeln: 0.7, gw_ddorf: 0.3 } },
   { node: "gw_ddorf", segment: "A44-aachen-duesseldorf", toCity: 0.45, through: { gw_be: 0.6, gw_nl: 0.4 } },
-  { node: "gw_be", segment: "A44-be-aachen", toCity: 0.3, through: { gw_koeln: 0.6, gw_ddorf: 0.4 } },
+  { node: "gw_be", segment: "A44-be-aachen", station: "AC-Lichtenbusch", toCity: 0.3, through: { gw_koeln: 0.6, gw_ddorf: 0.4 } },
   { node: "gw_vaals", daily: 9000, toCity: 1 },
   { node: "gw_kelmis", daily: 6000, toCity: 1 },
   { node: "gw_eifel", daily: 7000, toCity: 1 },

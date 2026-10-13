@@ -5,6 +5,8 @@
 // link flows down to the street-level simulations.
 
 import { GATEWAYS, LINKS, NODES, ROAD_CLASS, ZONES } from "../data/aachen.js";
+import { AACHEN_OSM } from "../data/real/aachen-osm.js";
+import { MOTORWAYS } from "../data/real/motorways.js";
 import { SEG_BY_ID } from "./country.js";
 import { co2Kg } from "./emissions.js";
 import { haversineKm } from "./geo.js";
@@ -24,11 +26,30 @@ export const scenarioKey = (s) =>
 export const nodeIndex = Object.fromEntries(NODES.map((n, i) => [n.id, i]));
 
 /** Links with geometry; each undirected link is two directed edges: 2i (from→to) and 2i+1 (to→from). */
+// Capacity per lane and hour (signalised urban roads carry much less per lane than motorways).
+const PER_LANE = { ring: 950, arterial: 800, rural: 1200 };
+
+/**
+ * Links with geometry. Ring, arterial and rural links take speed limit and lanes from
+ * OpenStreetMap where the street is mapped; old-town streets keep their access-only values
+ * and motorways their class values. `source` records which.
+ */
 export const links = LINKS.map((l, i) => {
   const a = NODES[nodeIndex[l.from]];
   const b = NODES[nodeIndex[l.to]];
   const km = haversineKm(a, b) * DETOUR;
-  return { ...l, index: i, km, ...ROAD_CLASS[l.cls] };
+  const cls = ROAD_CLASS[l.cls];
+  const osm = PER_LANE[l.cls] ? AACHEN_OSM.links[l.id] : null;
+  return {
+    ...l,
+    index: i,
+    km,
+    ...cls,
+    cap: osm ? PER_LANE[l.cls] * osm.lanes : cls.cap,
+    kmh: osm?.maxspeed ?? cls.kmh,
+    lanes: osm?.lanes ?? null,
+    source: osm ? { kind: "osm", label: "OpenStreetMap", detail: `${osm.street}: ${osm.maxspeed ?? "?"} km/h, ${osm.lanes} lane${osm.lanes > 1 ? "s" : ""} per direction (${osm.ways} mapped segments)` } : { kind: "model", label: "Model class", detail: `${cls.label} defaults` },
+  };
 });
 export const LINK_INDEX = Object.fromEntries(links.map((l) => [l.id, l.index]));
 
@@ -138,8 +159,9 @@ function buildDailyDemand() {
   const gatewayDaily = {};
   for (const g of GATEWAYS) {
     const seg = g.segment ? SEG_BY_ID[g.segment] : null;
-    const daily = seg ? seg.aadt / 2 : g.daily;
-    gatewayDaily[g.node] = { daily, segment: g.segment ?? null };
+    const station = g.station ? MOTORWAYS.aachen.find((st) => st.name === g.station) : null;
+    const daily = station ? station.dtv / 2 : seg ? seg.aadt / 2 : g.daily;
+    gatewayDaily[g.node] = { daily, segment: g.segment ?? null, station: station?.name ?? null };
     const o = nodeIndex[g.node];
     for (const z of ZONES) add([o], zoneNodes(z), (daily * g.toCity * (z.jobs + 0.3 * z.pop)) / jobsTotal, "inbound");
     for (const [other, share] of Object.entries(g.through ?? {})) {

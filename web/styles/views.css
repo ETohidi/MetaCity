@@ -132,6 +132,18 @@
   stroke-linecap: round;
   transition: stroke 0.4s;
 }
+.seg-line.is-illustrative {
+  stroke-dasharray: 6 5;
+  stroke-linecap: butt;
+}
+.source-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 6px;
+  color: var(--ink-2);
+}
 .seg.is-hl .seg-halo {
   stroke: var(--accent);
   opacity: 0.45;

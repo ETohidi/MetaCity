@@ -156,7 +156,8 @@ function linkCard(ctx) {
   const worst = Math.max(flows.vc[2 * l.index], flows.vc[2 * l.index + 1]);
   return html`<section class="card" aria-label="Selected street">
     <div class="row between"><h3>${l.name}</h3>${closed ? chip("Closed", "crit") : chip(LOAD_LABEL[loadTone(worst)], loadTone(worst))}</div>
-    <p class="muted small">${NODE_BY_ID[l.from].name} – ${NODE_BY_ID[l.to].name} · ${l.label} · ${(l.km).toFixed(1)} km · ${int(l.cap)} veh/h per direction</p>
+    <p class="muted small">${NODE_BY_ID[l.from].name} – ${NODE_BY_ID[l.to].name} · ${l.label} · ${(l.km).toFixed(1)} km · ${l.kmh} km/h · ${int(l.cap)} veh/h per direction</p>
+    <p class="small source-line">${chip(l.source.label, l.source.kind === "osm" ? "ok" : "", { plain: l.source.kind !== "osm" })} ${l.source.detail}</p>
     <div class="table-wrap"><table class="table">
       <thead><tr><th>Direction</th><th class="num">Veh/h</th><th class="num">Load</th><th class="num">Speed</th>${corridor ? html`<th class="num">Sensors</th>` : ""}</tr></thead>
       <tbody>
@@ -258,7 +259,7 @@ export function mount(view, ctx) {
         ${fidelityCard({
           level: 2,
           title: "Aachen · hourly model",
-          data: "Population and jobs per district, road capacities, motorway volumes from level 1",
+          data: "Population and jobs per district (illustrative), lanes and speed limits from OpenStreetMap, motorway volumes from BASt counts",
           resolution: "Street link (1–8 km), one hour, both directions",
           update: "Recomputed for every hour and every scenario",
           feeds: [
