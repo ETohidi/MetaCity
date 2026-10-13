@@ -175,6 +175,7 @@ export function mount(view, ctx) {
 
 function renderAsk(view, ctx) {
   const slot = view.querySelector("[data-ask-slot]");
+  if (!slot) return; // the viewer moved on while an answer was on its way
   slot.innerHTML = String(askPanel("country", ctx));
   bindAsk(slot, "country", ctx, () => {
     renderAsk(view, ctx);

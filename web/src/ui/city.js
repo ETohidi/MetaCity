@@ -330,6 +330,7 @@ function renderScenario(view, ctx) {
 
 function renderAsk(view, ctx) {
   const slot = view.querySelector("[data-ask-slot]");
+  if (!slot) return; // the viewer moved on while an answer was on its way
   slot.innerHTML = String(askPanel("city", ctx));
   bindAsk(slot, "city", ctx, () => {
     renderAsk(view, ctx);

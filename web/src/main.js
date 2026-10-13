@@ -127,7 +127,7 @@ function renderStatus() {
   const degraded = Object.values(twin.corridors).reduce((n, c) => n + c.health.filter((h) => h !== "ok").length, 0);
   statusline.innerHTML = String(html`
     ${chip("Simulated data", "", { plain: true })}
-    ${chip("Rule-based answers, no LLM", "", { plain: true })}
+    ${chip("Rule-based answers · Claude optional", "", { plain: true })}
     ${changes.length ? html`<a class="chip chip-accent" href="#aachen">Scenario: ${changes.join(", ")}</a>` : chip("Today's network")}
     ${alerts.length ? html`<a class="chip chip-crit" href="#${alerts[0].corridor}">${alerts.length} new alert${alerts.length > 1 ? "s" : ""} to review</a>` : ""}
     ${degraded ? chip(`${degraded} sensor mast${degraded > 1 ? "s" : ""} degraded`, "warn") : ""}

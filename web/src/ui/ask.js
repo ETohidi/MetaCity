@@ -3,6 +3,7 @@
 // Answers are frozen at the time they were asked and say which level and data they come from.
 
 import { QUESTIONS, ROLES } from "../engine/ask.js";
+import { bindClaude, claudeBody } from "./claude-panel.js";
 import { esc, hourBars, html, raw } from "./dom.js";
 
 const PLACEHOLDER = {
@@ -14,7 +15,7 @@ const PLACEHOLDER = {
 /** Per-level panel state lives in ui.ask[level]: { qid, params, answer, typed, miss }. */
 function state(ui, level) {
   ui.ask ??= {};
-  ui.ask[level] ??= { qid: null, params: {}, answer: null, typed: "", miss: false };
+  ui.ask[level] ??= { qid: null, params: {}, answer: null, typed: "", miss: false, mode: "rules" };
   return ui.ask[level];
 }
 
@@ -70,6 +71,17 @@ export function askPanel(level, ctx) {
       <h3 id="ask-title-${level}">Ask the twin</h3>
       <span class="chip chip-plain">as ${ROLES[level]}</span>
     </div>
+    <div class="ask-modes" role="group" aria-label="Who answers">
+      <button type="button" class="btn btn-ghost" data-ask-mode="rules" aria-pressed="${st.mode !== "claude"}">Twin's own answers</button>
+      <button type="button" class="btn btn-ghost" data-ask-mode="claude" aria-pressed="${st.mode === "claude"}">Ask Claude</button>
+    </div>
+    ${st.mode === "claude" ? claudeBody(level, ctx) : rulesBody(level, ctx, st)}
+  </section>`;
+}
+
+function rulesBody(level, ctx, st) {
+  const { twin } = ctx;
+  return html`
     <form class="ask-free" data-ask-free>
       <input class="input" name="q" autocomplete="off" placeholder="${PLACEHOLDER[level]}" value="${st.typed}" aria-label="Your question" data-focus-key="ask-input-${level}" />
       <button class="btn btn-primary" type="submit">Ask</button>
@@ -82,8 +94,7 @@ export function askPanel(level, ctx) {
     </ul>
     ${questionForm(twin, level, st, { corridor: ctx.corridor })}
     ${answerBlock(st.answer)}
-    ${st.answer ? html`<div class="row ask-actions">${st.answer.apply ? html`<button type="button" class="btn btn-primary" data-ask-apply>Apply to the twin</button>` : ""}<button type="button" class="btn btn-ghost" data-ask-refresh>Ask again now</button><button type="button" class="btn btn-ghost" data-ask-clear>Clear</button></div>` : ""}
-  </section>`;
+    ${st.answer ? html`<div class="row ask-actions">${st.answer.apply ? html`<button type="button" class="btn btn-primary" data-ask-apply>Apply to the twin</button>` : ""}<button type="button" class="btn btn-ghost" data-ask-refresh>Ask again now</button><button type="button" class="btn btn-ghost" data-ask-clear>Clear</button></div>` : ""}`;
 }
 
 function run(level, ctx, st) {
@@ -100,7 +111,14 @@ export function bindAsk(root, level, ctx, onChange) {
   const panel = root.querySelector(`[data-ask="${level}"]`);
   if (!panel) return;
   const st = state(ctx.ui, level);
+  bindClaude(panel, level, ctx, onChange);
   panel.addEventListener("click", (event) => {
+    const modeBtn = event.target.closest("[data-ask-mode]");
+    if (modeBtn) {
+      st.mode = modeBtn.dataset.askMode;
+      onChange();
+      return;
+    }
     const qBtn = event.target.closest("[data-ask-q]");
     if (qBtn) {
       const qid = qBtn.dataset.askQ;

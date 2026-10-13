@@ -474,6 +474,71 @@
   justify-content: space-between;
   gap: 8px;
 }
+.ask-modes {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+.ask-modes .btn {
+  min-height: 30px;
+}
+.claude-key,
+.claude-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.claude-form textarea {
+  resize: vertical;
+  font: inherit;
+}
+.claude-log {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.claude-log:empty {
+  display: none;
+}
+.claude-msg {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--step--1);
+}
+.claude-msg p {
+  white-space: pre-wrap;
+}
+.claude-msg.is-user {
+  background: var(--accent-soft);
+  align-self: flex-end;
+  max-width: 90%;
+}
+.claude-msg.is-assistant {
+  background: var(--surface-2);
+}
+.claude-msg.is-pending p {
+  color: var(--ink-3);
+}
+.claude-steps {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+.claude-steps li::before {
+  content: "↳ ";
+  color: var(--accent);
+}
+.claude-steps li.is-error {
+  color: var(--warn-ink);
+}
 .ask-free {
   display: flex;
   gap: 8px;
