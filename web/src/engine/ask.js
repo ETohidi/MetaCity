@@ -10,6 +10,7 @@
 import { LINKS, NODE_BY_ID } from "../data/aachen.js";
 import { demandSummary, edgeOf, gatewayLinks, links, LINK_INDEX, ZONE30 } from "./city.js";
 import { countryYear, segments, SEG_BY_ID, segmentHour, segmentsAt } from "./country.js";
+import { MOTORWAYS } from "../data/real/motorways.js";
 import { SOURCE_LABEL } from "./perception.js";
 import { DAY, hhmm } from "./profiles.js";
 
@@ -24,9 +25,9 @@ const hourLabel = (h) => `${String(h).padStart(2, "0")}:00`;
 const BASIS = {
   country: {
     level: "Germany",
-    data: "Annual average daily traffic per motorway segment, spread over a typical weekday",
+    data: "Annual average daily traffic per motorway segment (BASt counting stations where available, otherwise illustrative), spread over a typical weekday",
     resolution: "Segment (50–300 km), hourly profile",
-    confidence: "Rough (±25%): statistics, not observations",
+    confidence: "Volumes measured (BASt) on most segments; hourly load and CO2 are model estimates (±20%)",
   },
   city: {
     level: "Aachen",
@@ -123,7 +124,8 @@ export const QUESTIONS = {
     { id: "outside", text: "How much traffic comes from outside Aachen?", keywords: ["outside", "commut", "through", "external", "pendler", "region", "incoming"] },
     { id: "daily", text: "How many km are driven and how much CO2 per day?", keywords: ["km", "kilometre", "kilometer", "co2", "emission", "total", "per day", "daily", "climate"] },
     { id: "peak", text: "When is the peak hour?", keywords: ["peak", "rush", "hour", "when", "busiest time", "time of day"] },
-    { id: "calibration", text: "How well does the model match the street sensors?", keywords: ["sensor", "calibrat", "accura", "match", "valid", "measure", "count", "loop"] },
+    { id: "calibration", text: "How well does the model match the street sensors?", keywords: ["sensor", "calibrat", "accura", "match", "loop"] },
+    { id: "realcounts", text: "How does the model compare with real motorway counts?", keywords: ["real", "bast", "counting station", "measured", "validat", "compare", "real data", "count"] },
   ],
   corridor: [
     {
@@ -178,6 +180,16 @@ export function questionText(twin, level, qid, params, ctx = {}) {
 }
 
 // -- shared helpers ---------------------------------------------------------------------------
+/** Distance in km from a point to a city link drawn as a straight line. */
+function kmToLink(p, l) {
+  const a = NODE_BY_ID[l.from];
+  const b = NODE_BY_ID[l.to];
+  const kx = 111.32 * Math.cos((p.lat * Math.PI) / 180);
+  const [ax, ay, bx, by, px, py] = [a.lon * kx, a.lat * 110.57, b.lon * kx, b.lat * 110.57, p.lon * kx, p.lat * 110.57];
+  const t = Math.max(0, Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2)));
+  return Math.hypot(px - (ax + t * (bx - ax)), py - (ay + t * (by - ay)));
+}
+
 const linkName = (id) => {
   const l = links[LINK_INDEX[id]];
   return `${l.name} (${NODE_BY_ID[l.from].name} – ${NODE_BY_ID[l.to].name})`;
@@ -497,6 +509,36 @@ const ANSWERS = {
           rows: rows.map((r) => [`${r.name}: ${r.from} → ${r.to}`, int(r.model), int(r.sensed), r.ratio === null ? "—" : r.ratio.toFixed(2)]),
         },
         highlight: { links: [...new Set(rows.map((r) => r.link))] },
+      };
+    },
+    realcounts(twin) {
+      const day = twin.city.day(twin.scenario);
+      const rows = MOTORWAYS.aachen
+        .map((st) => {
+          const near = links
+            .filter((l) => l.cls === "motorway" && l.name === st.road)
+            .map((l) => ({ l, km: kmToLink(st, l) }))
+            .sort((a, b) => a.km - b.km)[0];
+          if (!near || near.km > 3) return null;
+          const model = day.linkDaily[2 * near.l.index] + day.linkDaily[2 * near.l.index + 1];
+          return { st, link: near.l, model, ratio: model / st.dtv };
+        })
+        .filter(Boolean);
+      if (!rows.length) return { headline: "No counting stations match the model's motorway links.", body: [] };
+      const err = rows.reduce((n, r) => n + Math.abs(r.ratio - 1), 0) / rows.length;
+      const worst = rows.reduce((a, b) => (Math.abs(b.ratio - 1) > Math.abs(a.ratio - 1) ? b : a));
+      return {
+        headline: `On ${rows.length} motorway sections around Aachen the city model is on average ${pct(err)} off the real BASt counts.`,
+        body: [
+          `The largest gap is at ${worst.st.name} (${worst.st.road}): the model has ${int(worst.model)} vehicles a day, the counting station ${int(worst.st.dtv)}.`,
+          "The model is a typical weekday; the counts are annual averages over all days, including quieter weekends, so the model should run a few percent higher.",
+          "The outer gateways take their volumes from the Germany level, which itself uses these counts; the stations nearer the city are the more independent check.",
+        ],
+        table: {
+          head: ["Counting station", "BASt veh/day", "Model veh/day", "Model / count"],
+          rows: rows.map((r) => [`${r.st.name} (${r.st.road}, ${r.st.year})`, int(r.st.dtv), int(r.model), r.ratio.toFixed(2)]),
+        },
+        highlight: { links: rows.map((r) => r.link.id) },
       };
     },
   },

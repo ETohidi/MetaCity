@@ -1,9 +1,10 @@
 // Level 1: the country twin. Statistical, not simulated: each motorway segment's annual
-// average daily traffic is spread over the day with typical profiles, which gives hourly
+// average daily traffic (measured by BASt counting stations where available) is spread over the day with typical profiles, which gives hourly
 // load, speed, CO2 and congestion hours. Planning questions are answered by changing the
 // inputs (growth, freight shifted to rail, a speed limit) and recomputing.
 
 import { CITY_BY_ID, CITIES, SEGMENTS } from "../data/germany-roads.js";
+import { MOTORWAYS } from "../data/real/motorways.js";
 import { carCo2Kg, hgvCo2Kg } from "./emissions.js";
 import { haversineKm } from "./geo.js";
 import { HGV_PROFILE, MOTORWAY_PROFILE, peakDirShare } from "./profiles.js";
@@ -16,16 +17,31 @@ const WORKDAYS = 250;
 
 export const BASE_OPTIONS = Object.freeze({ growth: 0, railShift: 0, railShiftOn: null, speedLimit: null });
 
+/**
+ * Segments with measured values where BASt counting stations exist on them (volume, truck
+ * share, lanes), illustrative values otherwise. `source` says which, for every number shown.
+ */
 export const segments = SEGMENTS.map((s) => {
   const a = CITY_BY_ID[s.from];
   const b = CITY_BY_ID[s.to];
+  const m = MOTORWAYS.segments[s.id];
+  const lanes = m?.lanes ?? s.lanes;
   return {
     ...s,
+    aadt: m?.aadt ?? s.aadt,
+    hgv: m?.hgv ?? s.hgv,
+    lanes,
+    illustrativeAadt: s.aadt,
+    source: m
+      ? { kind: "measured", label: `BASt ${m.year}`, detail: `${m.stations} counting station${m.stations > 1 ? "s" : ""} (${m.examples.join(", ")}${m.stations > m.examples.length ? ", …" : ""})`, year: m.year }
+      : { kind: "illustrative", label: "Illustrative", detail: "No recent counting station on this segment; value of the right order of magnitude" },
     name: `${s.road} ${a.name} – ${b.name}`,
     lengthKm: Math.round(haversineKm(a, b) * DETOUR),
-    capPcuPerDir: s.lanes * LANE_CAP_PCU,
+    capPcuPerDir: lanes * LANE_CAP_PCU,
   };
 });
+
+export const MEASURED = { source: MOTORWAYS.source, url: MOTORWAYS.url, year: MOTORWAYS.year, count: segments.filter((s) => s.source.kind === "measured").length };
 
 export const cities = CITIES;
 export const SEG_BY_ID = Object.fromEntries(segments.map((s) => [s.id, s]));

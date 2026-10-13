@@ -2,7 +2,7 @@
 // weekday has at the current hour. d3 is a global from index.html.
 
 import germanyGeo from "../data/germany.js";
-import { cities, countryYear, segmentHour, segments, SEG_BY_ID, segmentYear } from "../engine/country.js";
+import { cities, countryYear, MEASURED, segmentHour, segments, SEG_BY_ID, segmentYear } from "../engine/country.js";
 import { askHighlight, askPanel, bindAsk } from "./ask.js";
 import { chip, fidelityCard, hourBars, html, int, kmh, LOAD_LABEL, loadColor, loadTone, meter, pct, raw } from "./dom.js";
 
@@ -30,6 +30,7 @@ function geometry() {
   return geo;
 }
 
+const segBy = Object.fromEntries(segments.map((s) => [s.id, s]));
 const width = (aadt) => (1.5 + aadt / 22000).toFixed(2);
 
 function mapSvg() {
@@ -41,8 +42,8 @@ function mapSvg() {
       ${g.segs.map(
         ({ s, a, b }) => html`<g class="seg" data-seg="${s.id}" tabindex="0" role="button" aria-label="${s.name}">
           <line class="seg-hit" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" />
-          <line class="seg-halo" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-width="${(Number(width(s.aadt)) + 5).toFixed(1)}" />
-          <line class="seg-line" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-width="${width(s.aadt)}" />
+          <line class="seg-halo" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-width="${(Number(width(segBy[s.id].aadt)) + 5).toFixed(1)}" />
+          <line class="seg-line${segBy[s.id].source.kind === "measured" ? "" : " is-illustrative"}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-width="${width(segBy[s.id].aadt)}" />
           <title>${s.name}</title>
         </g>`,
       )}
@@ -97,12 +98,14 @@ function live(ctx) {
         <div class="stat"><span class="stat-value">${now.filter((r) => r.vc > 0.95).length}</span><span class="stat-label">congested right now</span></div>
       </div>
       <p class="muted small">Most loaded now: <strong>${top.s.name}</strong>, ${pct(top.vc)} of capacity, about ${kmh(top.kmh)}.</p>
+      <p class="muted small">Volumes on ${MEASURED.count} of ${segments.length} segments are measured (${MEASURED.source}, up to ${MEASURED.year}); dashed segments are illustrative.</p>
     </section>
     ${
       seg
         ? html`<section class="card" aria-label="Selected segment">
             <div class="row between"><h3>${seg.name}</h3>${chip(LOAD_LABEL[loadTone(segNow.vc)], loadTone(segNow.vc))}</div>
             ${meter(segNow.vc)}
+            <p class="small source-line">${chip(seg.source.label, seg.source.kind === "measured" ? "ok" : "warn")} ${seg.source.detail}</p>
             <dl class="kv">
               <dt>Vehicles per day (AADT)</dt><dd>${int(seg.aadt)}</dd>
               <dt>Trucks</dt><dd>${pct(seg.hgv)} · ${int(segYear.hgvPerDay)}/day</dd>
@@ -135,7 +138,7 @@ export function mount(view, ctx) {
         <span><i class="swatch" style="background:var(--ok)"></i>below 70% of capacity</span>
         <span><i class="swatch" style="background:var(--warn)"></i>70–95%</span>
         <span><i class="swatch" style="background:var(--crit)"></i>congested</span>
-        <span>line width = vehicles per day</span>
+        <span>line width = vehicles per day · dashed = illustrative</span>
       </div>
     </div>
     <div class="layout">
@@ -144,7 +147,7 @@ export function mount(view, ctx) {
         ${fidelityCard({
           level: 1,
           title: "Germany · statistics",
-          data: "Annual average daily traffic (AADT) per motorway segment, truck share, lanes",
+          data: "Annual average daily traffic (AADT), truck share and lanes per motorway segment, from BASt counting stations where available",
           resolution: "Segment of 40–300 km; typical-weekday hourly profile",
           update: "Yearly, when new counts are published",
           feeds: [{ dir: "down", text: "Daily volumes on the A4 and A44 become the traffic entering the Aachen model." }],
