@@ -13,6 +13,8 @@ There is no backend and no LLM. Sibling of ../MetaHospital and ../MetaAgri, same
     - country.js       level 1: AADT statistics -> hourly load, CO2, what-ifs
     - city.js          level 2: gravity demand + MSA/BPR assignment per hour, scenarios
     - corridor.js      levels 3-4: IDM vehicles, signals, sensor masts, loop counters
+    - perception.js    what the twin knows: mast event classifiers (prompt-defined classes) and
+                       connected-vehicle hazard reports -> alerts; incidents are simulation truth
     - ask.js           question catalogue per level, answers, free-text matching
   - src/ui/            views: country.js, city.js, corridor.js (canvas), street3d.js (three.js junction,
                        loaded on demand), ask.js (panel), dom.js
@@ -27,7 +29,8 @@ There is no backend and no LLM. Sibling of ../MetaHospital and ../MetaAgri, same
 - The engine never touches the DOM, Math.random or Date. Randomness goes through the Twin's
   seeded rng; read-only queries (questions, sensor views) must not advance it (use hashFloat).
 - Views read through Twin methods and change it only via tick(), setTime(), setScenario(),
-  resetScenario(), addIncident(), clearIncidents(), setMastHealth() and reset().
+  resetScenario(), addIncident(), clearIncidents(), setMastHealth(), reviewAlert() and reset().
+- Answers about events use perceived alerts, never simulation truth (label any truth as a check).
 - Every answer states its level, data basis, resolution and confidence.
 - Build markup with the `html` tagged template from dom.js; colours only through base.css tokens.
 - Routes are plain hash tokens (`#germany`, `#aachen`, `#julicher`, `#julicher.j2`).

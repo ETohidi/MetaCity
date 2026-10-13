@@ -10,6 +10,7 @@
 import { LINKS, NODE_BY_ID } from "../data/aachen.js";
 import { demandSummary, edgeOf, gatewayLinks, links, LINK_INDEX, ZONE30 } from "./city.js";
 import { countryYear, segments, SEG_BY_ID, segmentHour, segmentsAt } from "./country.js";
+import { SOURCE_LABEL } from "./perception.js";
 import { DAY, hhmm } from "./profiles.js";
 
 // -- formatting (engine-side, locale-independent) ------------------------------------------
@@ -570,19 +571,33 @@ const ANSWERS = {
       };
     },
     ahead(twin, p, ctx) {
+      // Only what the twin perceives: alerts from the masts' classifiers and connected vehicles.
       const sim = twin.corridors[ctx.corridor];
       const st = sim.def.stations;
-      const nearest = (x) => st.reduce((a, s) => (Math.abs(s.x - x) < Math.abs(a.x - x) ? s : a), st[0]);
-      const items = sim.incidents.map(
-        (inc) => `${inc.kind} in the ${inc.lane === 1 ? "left" : "right"} lane towards ${inc.d === 0 ? st.at(-1).name : st[0].name}, near ${nearest(inc.x).name}, since ${hhmm(inc.since % DAY)}.`,
-      );
+      const towards = (d) => (d === 0 ? st.at(-1).name : st[0].name);
+      const alerts = twin.alerts(ctx.corridor);
+      const items = alerts.map((a) => {
+        const where = `near ${st[a.station].name}`;
+        const how = `${Object.keys(a.sources).map((s) => SOURCE_LABEL[s].toLowerCase()).join(" and ")}, ${pct(a.confidence)} sure${a.state === "confirmed" ? ", confirmed by the operator" : ""}`;
+        if (a.kind === "stalled") return `A stalled vehicle in the ${a.lane === 1 ? "left" : "right"} lane towards ${towards(a.d)}, ${where} (${how}).`;
+        if (a.kind === "spillback") return `The queue towards ${towards(a.d)} reaches back beyond ${st[a.station].name} (${how}).`;
+        return `The camera at ${st[a.station].name} is obstructed: the twin is partly blind there.`;
+      });
+      const blocking = alerts.filter((a) => a.kind === "stalled");
       const degraded = sim.health.map((h, i) => (h !== "ok" ? st[i].name : null)).filter(Boolean);
       const dirs = [0, 1].map((d) => sim.directionStats(d));
       const backlog = dirs.map((s, d) => (s.waitingToEnter > 5 ? `${s.waitingToEnter} vehicles are queued beyond ${d === 0 ? st[0].name : st.at(-1).name} trying to enter.` : null)).filter(Boolean);
+      const truth = sim.incidents.length;
+      const known = sim.incidents.filter((inc) => twin.perception[ctx.corridor].knows(inc.id)).length;
       return {
-        headline: items.length ? `Yes: ${items.length === 1 ? "one lane is blocked" : `${items.length} lanes are blocked`}.` : "The road is clear: no incidents reported.",
-        body: [...items, ...backlog, degraded.length ? `Sensor coverage is degraded at ${degraded.join(", ")}: incidents there could be missed.` : "All sensor masts are healthy."],
-        facts: [0, 1].map((d) => [`Towards ${d === 0 ? st.at(-1).name : st[0].name}`, `${dirs[d].vehicles} veh, ${dirs[d].meanKmh === null ? "—" : int(dirs[d].meanKmh)} km/h, ${dirs[d].stopped} stopped`]),
+        headline: blocking.length ? `Yes: ${blocking.length === 1 ? "one lane is reported blocked" : `${blocking.length} lanes are reported blocked`}.` : alerts.length ? "No blocked lanes reported, but there are other alerts." : "Nothing reported: the road looks clear.",
+        body: [
+          ...items,
+          ...backlog,
+          degraded.length ? `Sensor coverage is degraded at ${degraded.join(", ")}: incidents there could be missed.` : "All sensor masts are healthy. Between masts, the twin relies on connected vehicles to report.",
+          `Simulation check (not visible to a real twin): ${truth} actual blockage${truth === 1 ? "" : "s"}, ${known} known to the twin.`,
+        ],
+        facts: [0, 1].map((d) => [`Towards ${towards(d)}`, `${dirs[d].vehicles} veh, ${dirs[d].meanKmh === null ? "—" : int(dirs[d].meanKmh)} km/h, ${dirs[d].stopped} stopped`]),
       };
     },
     leave(twin, p, ctx) {

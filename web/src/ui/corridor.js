@@ -5,6 +5,7 @@
 import { askPanel, bindAsk } from "./ask.js";
 import { chip, fidelityCard, html, int, kmh, raw } from "./dom.js";
 import { loadThree, Street3D } from "./street3d.js";
+import { PROMPTS, SOURCE_LABEL } from "../engine/perception.js";
 
 const LANE_PX = 8;
 const MEDIAN_PX = 4;
@@ -54,7 +55,7 @@ function fitCanvas(canvas, height) {
 }
 
 // -- overview strip -------------------------------------------------------------------------
-function drawOverview(canvas, sim, ui) {
+function drawOverview(canvas, sim, ui, perception) {
   const { g, w, h } = fitCanvas(canvas, OVERVIEW_H);
   const c = css();
   const pad = 28;
@@ -96,11 +97,18 @@ function drawOverview(canvas, sim, ui) {
   }
   g.setLineDash([]);
 
-  // Incidents.
+  // Incidents: filled when the twin knows about them, outlined while only the simulation does.
   for (const inc of sim.incidents) {
     const y = laneY(inc.d, inc.lane);
-    g.fillStyle = c.crit;
-    g.fillRect(X(inc.x) - 4, y - 1, 8, LANE_PX + 2);
+    if (perception?.knows(inc.id)) {
+      g.fillStyle = c.crit;
+      g.fillRect(X(inc.x) - 4, y - 1, 8, LANE_PX + 2);
+    } else {
+      g.strokeStyle = c.crit;
+      g.setLineDash([2, 2]);
+      g.strokeRect(X(inc.x) - 4, y - 1, 8, LANE_PX + 2);
+      g.setLineDash([]);
+    }
   }
 
   // Vehicles.
@@ -277,6 +285,46 @@ function drawDetail(canvas, sim, i) {
   g.fillText(`→ towards ${names[0]}`, 8, laneTop(0, 0) + laneM * scale + 18);
   g.textAlign = "right";
   g.fillText(`← towards ${names[1]}`, w - 8, yTop - 8);
+}
+
+// -- alerts: what the twin perceives -------------------------------------------------------------------
+const ALERT_LABEL = { stalled: "Stalled vehicle", spillback: "Queue spillback", obstructed: "Camera obstructed" };
+
+function alertsCard(ctx, sim) {
+  const per = ctx.twin.perception[sim.def.id];
+  const st = sim.def.stations;
+  const active = per.active();
+  const recent = per.recent().slice(0, 3);
+  const towards = (d) => (d === 0 ? st.at(-1).name : st[0].name);
+  const detectDelay = (a) => {
+    const inc = a.incident && sim.incidents.find((i) => i.id === a.incident);
+    return inc ? Math.round(a.raisedAt - inc.since) : null;
+  };
+  return html`<section class="card alerts" aria-label="Alerts">
+    <div class="row between"><h3>Alerts</h3>${active.length ? chip(`${active.length} active`, "crit") : chip("None", "ok")}</div>
+    <p class="small muted">Raised by each mast's prompt-defined event classifier and by connected vehicles. Incidents nobody sees stay unknown to the twin (dashed on the strip).</p>
+    ${
+      active.length
+        ? html`<ul class="alert-list">${active.map((a) => {
+            const delay = detectDelay(a);
+            return html`<li class="alert-item${a.state === "confirmed" ? " is-confirmed" : ""}">
+              <div class="row between"><strong>${ALERT_LABEL[a.kind]}</strong><span class="mono small">${Math.round(a.confidence * 100)}%</span></div>
+              <span class="small">${a.kind === "obstructed" ? `at ${st[a.station].name}` : `near ${st[a.station].name}${a.d !== null ? `, towards ${towards(a.d)}` : ""}`}</span>
+              <span class="small muted">${Object.keys(a.sources).map((s) => SOURCE_LABEL[s]).join(" + ")}${delay !== null ? ` · noticed ${delay} s after it happened` : ""}</span>
+              ${
+                a.state === "new"
+                  ? html`<div class="row"><button class="btn btn-ok" data-alert="${a.id}" data-decision="confirmed">Confirm</button><button class="btn btn-ghost" data-alert="${a.id}" data-decision="dismissed">Dismiss</button></div>`
+                  : html`<span class="small ok-text">Confirmed by the operator</span>`
+              }
+            </li>`;
+          })}</ul>`
+        : ""
+    }
+    ${recent.length ? html`<p class="small muted">Earlier: ${recent.map((a) => `${ALERT_LABEL[a.kind].toLowerCase()} at ${st[a.station].name} (${a.state})`).join("; ")}.</p>` : ""}
+    <details class="prompts"><summary class="small">Classifier prompts</summary>
+      <ul class="small muted">${Object.entries(PROMPTS).map(([k, v]) => html`<li><strong>${ALERT_LABEL[k]}:</strong> “${v}”</li>`)}</ul>
+    </details>
+  </section>`;
 }
 
 // -- panel ----------------------------------------------------------------------------------------
@@ -489,7 +537,7 @@ export function mount(view, ctx) {
     const x = sim.def.stations[at].x + (d === 0 ? -45 : 45);
     if (btn.dataset.evAct === "block") {
       ctx.twin.addIncident(sim.def.id, { d, lane: 0, x, minutes: 20 });
-      ctx.toast(`A broken-down vehicle blocks the right lane before ${sim.def.stations[at].name}.`);
+      ctx.toast(`A vehicle breaks down before ${sim.def.stations[at].name}. The twin has to notice it: watch the alerts.`);
     }
     if (btn.dataset.evAct === "tamper") {
       const next = sim.health[at] === "ok" ? "degraded" : "ok";
@@ -510,6 +558,13 @@ export function mount(view, ctx) {
   });
   if (st && ctx.ui.view3d) setViewMode(view, ctx, ctx.ui.view3d);
 
+  view.querySelector("[data-live]").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-alert]");
+    if (!b) return;
+    ctx.twin.reviewAlert(sim.def.id, b.dataset.alert, b.dataset.decision);
+    ctx.onTwinChange();
+  });
+
   renderAsk(view, ctx);
   update(view, ctx);
   frame(view, ctx);
@@ -525,7 +580,7 @@ function renderAsk(view, ctx) {
 export function update(view, ctx) {
   const sim = ctx.twin.corridors[ctx.route.corridor];
   const station = ctx.route.station ?? null;
-  view.querySelector("[data-live]").innerHTML = String(live(ctx, sim, station));
+  view.querySelector("[data-live]").innerHTML = String(html`${alertsCard(ctx, sim)}${live(ctx, sim, station)}`);
   const j = view.querySelector("[data-junctions]");
   if (j) j.innerHTML = String(junctionCards(ctx, sim));
 }
@@ -533,7 +588,7 @@ export function update(view, ctx) {
 export function frame(view, ctx) {
   const sim = ctx.twin.corridors[ctx.route.corridor];
   const ov = view.querySelector("canvas.overview");
-  if (ov) drawOverview(ov, sim, ctx.ui);
+  if (ov) drawOverview(ov, sim, ctx.ui, ctx.twin.perception[ctx.route.corridor]);
   if (ctx.ui.view3d && street) {
     const hud = street.render();
     const el = view.querySelector("[data-hud]");
