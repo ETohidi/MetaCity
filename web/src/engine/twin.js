@@ -1,6 +1,7 @@
 // The Twin facade: one clock shared by every level, the three models, and the hand-overs
 // between them. Views read through the query methods here and change the twin only through
-// tick(), setTime(), setScenario(), addIncident()/clearIncidents(), setMastHealth() and reset().
+// tick(), setTime(), setScenario(), addIncident()/clearIncidents(), setMastHealth(), reviewAlert()
+// and reset(). Incidents are simulation truth; alerts are what the twin perceives of them.
 //
 //   Germany (statistics)  --gateway volumes-->  Aachen (hourly model)  --link flows-->  corridor (vehicles)
 //   Germany               <--consistency----    Aachen                 <--loop counts--  corridor
@@ -10,6 +11,7 @@ import { answer, matchQuestion } from "./ask.js";
 import { BASE_SCENARIO, CityModel, edgeOf, links } from "./city.js";
 import { CorridorSim, corridorConstants, DT } from "./corridor.js";
 import * as country from "./country.js";
+import { Perception } from "./perception.js";
 import { DAY, hhmm } from "./profiles.js";
 import { createRng } from "./rng.js";
 
@@ -70,7 +72,11 @@ export class Twin {
     this.carry = 0;
     this.version = 0;
     this.corridors = {};
-    for (const def of Object.values(corridorDefs)) this.corridors[def.id] = new CorridorSim(def, this.rng);
+    this.perception = {};
+    for (const def of Object.values(corridorDefs)) {
+      this.corridors[def.id] = new CorridorSim(def, this.rng);
+      this.perception[def.id] = new Perception(this.corridors[def.id]);
+    }
     this.restartCorridors();
   }
 
@@ -78,6 +84,7 @@ export class Twin {
     for (const sim of Object.values(this.corridors)) {
       sim.incidents = [];
       sim.reset(this.time, (t) => this.corridorDemand(sim.def, t));
+      this.perception[sim.def.id].clear();
     }
     this.demandMinute = Math.floor(this.time / 60);
   }
@@ -103,7 +110,10 @@ export class Twin {
         this.demandMinute = minute;
         for (const sim of Object.values(this.corridors)) sim.demand = this.corridorDemand(sim.def, this.time);
       }
-      for (const sim of Object.values(this.corridors)) sim.step();
+      for (const sim of Object.values(this.corridors)) {
+        sim.step();
+        this.perception[sim.def.id].step();
+      }
     }
   }
 
@@ -134,6 +144,17 @@ export class Twin {
   clearIncidents(corridorId) {
     this.corridors[corridorId].incidents = [];
     this.version++;
+  }
+
+  /** An operator's decision on an alert: "confirmed" or "dismissed". */
+  reviewAlert(corridorId, alertId, decision) {
+    this.perception[corridorId].review(alertId, decision);
+    this.version++;
+  }
+
+  /** Alerts the twin has raised on a corridor (perceived events, not simulation truth). */
+  alerts(corridorId) {
+    return this.perception[corridorId].active();
   }
 
   setMastHealth(corridorId, station, health) {

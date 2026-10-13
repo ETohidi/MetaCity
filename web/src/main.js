@@ -123,13 +123,13 @@ function renderStatus() {
     s.zone30 && "30 km/h zone",
     s.demand !== 1 && `demand ${Math.round(s.demand * 100)}%`,
   ].filter(Boolean);
-  const incidents = Object.values(twin.corridors).reduce((n, c) => n + c.incidents.length, 0);
+  const alerts = Object.keys(twin.corridors).flatMap((id) => twin.alerts(id).filter((a) => a.state === "new").map((a) => ({ ...a, corridor: id })));
   const degraded = Object.values(twin.corridors).reduce((n, c) => n + c.health.filter((h) => h !== "ok").length, 0);
   statusline.innerHTML = String(html`
     ${chip("Simulated data", "", { plain: true })}
     ${chip("Rule-based answers, no LLM", "", { plain: true })}
     ${changes.length ? html`<a class="chip chip-accent" href="#aachen">Scenario: ${changes.join(", ")}</a>` : chip("Today's network")}
-    ${incidents ? chip(`${incidents} lane${incidents > 1 ? "s" : ""} blocked`, "crit") : ""}
+    ${alerts.length ? html`<a class="chip chip-crit" href="#${alerts[0].corridor}">${alerts.length} new alert${alerts.length > 1 ? "s" : ""} to review</a>` : ""}
     ${degraded ? chip(`${degraded} sensor mast${degraded > 1 ? "s" : ""} degraded`, "warn") : ""}
   `);
 }
