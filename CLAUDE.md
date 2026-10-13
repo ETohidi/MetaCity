@@ -14,14 +14,16 @@ There is no backend and no LLM. Sibling of ../MetaHospital and ../MetaAgri, same
     - city.js          level 2: gravity demand + MSA/BPR assignment per hour, scenarios
     - corridor.js      levels 3-4: IDM vehicles, signals, sensor masts, loop counters
     - ask.js           question catalogue per level, answers, free-text matching
-  - src/ui/            views: country.js, city.js, corridor.js (canvas), ask.js (panel), dom.js
+  - src/ui/            views: country.js, city.js, corridor.js (canvas), street3d.js (three.js junction,
+                       loaded on demand), ask.js (panel), dom.js
   - src/data/          germany-roads.js, aachen.js (schematic network), germany.js (states)
   - styles/            base.css (tokens + shared components), views.css
   - test/              node:test suite for the engine
   - tools/             serve.mjs (port 8090), make-artifact.mjs
 
 ## Rules
-- Vanilla ES modules only, no bundler, no npm runtime dependencies; d3 is the only library.
+- Vanilla ES modules only, no bundler, no npm runtime dependencies. d3 (always) and three.js r128
+  (only when the 3D view opens) are the only libraries, both UMD globals from cdnjs.
 - The engine never touches the DOM, Math.random or Date. Randomness goes through the Twin's
   seeded rng; read-only queries (questions, sensor views) must not advance it (use hashFloat).
 - Views read through Twin methods and change it only via tick(), setTime(), setScenario(),
@@ -30,6 +32,8 @@ There is no backend and no LLM. Sibling of ../MetaHospital and ../MetaAgri, same
 - Build markup with the `html` tagged template from dom.js; colours only through base.css tokens.
 - Routes are plain hash tokens (`#germany`, `#aachen`, `#julicher`, `#julicher.j2`).
 - All numbers are simulated or illustrative; sensor masts are fictional. Say so in the UI.
+- `main` deploys to the live site on every push: develop on a branch, merge when tests pass and
+  the change is checked in the browser.
 
 ## Commands (from web/)
 - `npm test`, `npm run serve`, `npm run artifact`

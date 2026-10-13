@@ -176,8 +176,11 @@ function isBusy() {
 
 const ctx = () => ({ twin, ui, route, toast, onTwinChange: refresh });
 
+let mounted = null;
 function mountView() {
   const mod = VIEWS[route.level];
+  mounted?.unmount?.();
+  mounted = mod;
   renderTop();
   view.innerHTML = "";
   mod.mount(view, ctx());
