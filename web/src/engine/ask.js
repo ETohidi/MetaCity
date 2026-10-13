@@ -7,7 +7,7 @@
 //              series?{label, unit, values, mark}, basis{level, data, resolution, confidence},
 //              highlight{segments[], links[], stations[]}, apply?{city scenario}, time }
 
-import { LINKS, NODE_BY_ID } from "../data/aachen.js";
+import { COMMUTERS, LINKS, NODE_BY_ID } from "../data/aachen.js";
 import { demandSummary, edgeOf, gatewayLinks, links, LINK_INDEX, ZONE30 } from "./city.js";
 import { countryYear, segments, SEG_BY_ID, segmentHour, segmentsAt } from "./country.js";
 import { MOTORWAYS } from "../data/real/motorways.js";
@@ -449,12 +449,15 @@ const ANSWERS = {
         headline: `${pct((s.inbound + s.through) / total)} of the vehicle trips on Aachen's roads start or end outside the city.`,
         body: [
           `About ${int(s.inbound)} trips a day come in or go out: commuters and visitors from the region and across the Dutch and Belgian borders. ${int(s.through)} more pass through on the motorways without stopping.`,
-          "The motorway gateways take their volumes from the Germany level; local roads to Vaals, Kelmis, the Eifel and Würselen use regional counts.",
+          `For comparison, ${int(COMMUTERS.in)} people commute into Aachen and ${int(COMMUTERS.out)} out (${COMMUTERS.source}); with the car share of commuting, that fits the model's volume of trips from outside.`,
+          "The motorway gateways take their volumes from BASt counts; the local roads to Vaals, Kelmis, Eupen, the Eifel and Würselen use illustrative volumes.",
         ],
         facts: [
           ["Inside Aachen", `${int(s.local)} trips/day`],
           ["To or from outside", `${int(s.inbound)} trips/day`],
           ["Through traffic", `${int(s.through)} trips/day`],
+          ["Official: commuters in", `${int(COMMUTERS.in)} people (2024)`],
+          ["Official: commuters out", `${int(COMMUTERS.out)} people (2024)`],
         ],
         highlight: { links: Object.values(gatewayLinks).map((l) => l.id) },
       };

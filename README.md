@@ -68,8 +68,11 @@ tests and deploys `web/` to GitHub Pages.
 | Motorway volumes, truck shares, lanes (Germany level) | **Measured** on 37 of 41 segments | BASt automatic counting stations, 2020–2024, aggregated per segment |
 | Motorway counting stations on the Germany map | **Measured**: 1,103 stations, latest count each | BASt automatic counting stations |
 | Aachen motorway gateways | **Measured** where a station sits at the gateway | BASt (AC-Vetschau, AK Aachen (O), AC-Lichtenbusch) |
-| Street lanes and speed limits (Aachen level) | **Real** for 28 of 31 street links | © OpenStreetMap contributors, ODbL |
-| Population and jobs per district | Illustrative (rounded) | – |
+| Street lanes and speed limits (Aachen level) | **Real** for 35 of 38 street links | © OpenStreetMap contributors, ODbL |
+| Population per district (13 zones from 34 statistical districts) | **Official**, 31.12.2024 | Stadt Aachen, Statistisches Jahrbuch 2024 |
+| Jobs | **Official** city total (140,746); spread over districts estimated | Stadt Aachen, Statistisches Jahrbuch 2024 |
+| Commuters in / out (88,022 / 40,951) | **Official**, used as a check | Stadt Aachen, Statistisches Jahrbuch 2024 |
+| Road network | Schematic, real streets: the old town, the Alleenring, the main radials and the outer ring (Toledoring, Prager, Berliner, Madrider Ring) | positions approximate |
 | Hourly flows, vehicles, queues, sensor masts, detections | Simulated | – |
 
 The Aachen question "How does the model compare with real motorway counts?" checks the city
@@ -83,5 +86,5 @@ real data with `npm run data`; see `web/src/data/real/SOURCES.md` for sources an
 - Synthetic Street Scenes / StreetPrompt: rare street events and prompt-defined classifiers;
   the masts' event detection imitates that (simulated, no video).
 - BoundlessNYC: procedural 3D cities in the browser; the 3D junction view borrows the idea.
-- More real data: district population and jobs (Aachen statistics), city traffic counts for
-  the arterials, and real detector feeds for the street level when they become available.
+- More real data: workplace jobs per district, city traffic counts for the arterials, and real
+  detector feeds for the street level when they become available.
