@@ -4,6 +4,7 @@
 
 import { askPanel, bindAsk } from "./ask.js";
 import { chip, fidelityCard, html, int, kmh, raw } from "./dom.js";
+import { loadThree, Street3D } from "./street3d.js";
 
 const LANE_PX = 8;
 const MEDIAN_PX = 4;
@@ -364,8 +365,48 @@ function eventsCard(sim, station) {
   </section>`;
 }
 
+// -- 3D (level 4) -----------------------------------------------------------------------------------
+const VIEW_MODES = [
+  ["top", "Top view"],
+  ["orbit", "3D"],
+  ["mast", "Mast camera"],
+  ["driver", "Driver"],
+];
+let street = null;
+
+export function unmount() {
+  street?.dispose();
+  street = null;
+}
+
+function setViewMode(view, ctx, mode) {
+  ctx.ui.view3d = mode === "top" ? null : mode;
+  for (const b of view.querySelectorAll("[data-view-mode]")) b.setAttribute("aria-pressed", String(b.dataset.viewMode === mode));
+  view.querySelector("canvas.detail").hidden = mode !== "top";
+  const host = view.querySelector(".scene3d");
+  host.hidden = mode === "top";
+  if (mode === "top") return;
+  if (street) {
+    street.setMode(mode);
+    return;
+  }
+  const sim = ctx.twin.corridors[ctx.route.corridor];
+  const station = ctx.route.station;
+  loadThree()
+    .then((THREE) => {
+      if (!host.isConnected || street) return;
+      street = new Street3D(THREE, host, sim, station);
+      street.setMode(ctx.ui.view3d ?? "orbit");
+    })
+    .catch(() => {
+      ctx.toast("The 3D view needs three.js from cdnjs, which could not be loaded. Showing the top view.");
+      setViewMode(view, ctx, "top");
+    });
+}
+
 // -- mount / update / frame ----------------------------------------------------------------------
 export function mount(view, ctx) {
+  unmount();
   const sim = ctx.twin.corridors[ctx.route.corridor];
   const station = ctx.route.station ?? null;
   ctx.ui.sel.station = station;
@@ -395,7 +436,11 @@ export function mount(view, ctx) {
         ${
           st
             ? html`<div class="card canvas-card">
-                <canvas class="detail" height="${DETAIL_H}" aria-label="Close-up of ${st.name} with sensor detections" role="img"></canvas>
+                <div class="view-toggle" role="group" aria-label="How to show the junction">
+                  ${VIEW_MODES.map(([mode, label]) => html`<button type="button" class="btn btn-ghost" data-view-mode="${mode}" aria-pressed="${(ctx.ui.view3d ?? "top") === mode}">${label}</button>`)}
+                </div>
+                <canvas class="detail" height="${DETAIL_H}" aria-label="Close-up of ${st.name} with sensor detections" role="img"${ctx.ui.view3d ? raw(" hidden") : ""}></canvas>
+                <div class="scene3d"${ctx.ui.view3d ? "" : raw(" hidden")}><p class="scene3d-hud" data-hud></p><p class="scene3d-hint small">Drag to turn, scroll to zoom. Buildings are procedural, not real.</p></div>
               </div>
               <nav class="row junction-tabs" aria-label="Junctions">
                 ${sim.def.stations.map((s, i) => (s.signal ? html`<a class="btn${i === station ? " btn-primary" : ""}" href="#${sim.def.id}.j${i}"${i === station ? raw(' aria-current="page"') : ""}>${s.name}</a>` : ""))}
@@ -459,6 +504,12 @@ export function mount(view, ctx) {
     update(view, ctx);
   });
 
+  view.querySelector(".view-toggle")?.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-view-mode]");
+    if (b) setViewMode(view, ctx, b.dataset.viewMode);
+  });
+  if (st && ctx.ui.view3d) setViewMode(view, ctx, ctx.ui.view3d);
+
   renderAsk(view, ctx);
   update(view, ctx);
   frame(view, ctx);
@@ -483,6 +534,12 @@ export function frame(view, ctx) {
   const sim = ctx.twin.corridors[ctx.route.corridor];
   const ov = view.querySelector("canvas.overview");
   if (ov) drawOverview(ov, sim, ctx.ui);
+  if (ctx.ui.view3d && street) {
+    const hud = street.render();
+    const el = view.querySelector("[data-hud]");
+    if (el && el.textContent !== (hud ?? "")) el.textContent = hud ?? "";
+    return;
+  }
   const det = view.querySelector("canvas.detail");
-  if (det && ctx.route.station !== undefined) drawDetail(det, sim, ctx.route.station);
+  if (det && !det.hidden && ctx.route.station !== undefined) drawDetail(det, sim, ctx.route.station);
 }
