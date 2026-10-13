@@ -2,7 +2,7 @@
 // weekday has at the current hour. d3 is a global from index.html.
 
 import germanyGeo from "../data/germany.js";
-import { cities, countryYear, MEASURED, segmentHour, segments, SEG_BY_ID, segmentYear } from "../engine/country.js";
+import { cities, countryYear, MEASURED, segmentHour, segments, SEG_BY_ID, segmentYear, STATION_BY_ID, stations } from "../engine/country.js";
 import { askHighlight, askPanel, bindAsk } from "./ask.js";
 import { chip, fidelityCard, hourBars, html, int, kmh, LOAD_LABEL, loadColor, loadTone, meter, pct, raw } from "./dom.js";
 
@@ -26,6 +26,7 @@ function geometry() {
     states: germanyGeo.features.map((f) => ({ name: f.properties.name, d: path(f) })),
     cities: cities.map((c) => ({ ...c, xy: pt(c) })),
     segs: segments.map((s) => ({ s, a: pt(byId[s.from]), b: pt(byId[s.to]) })),
+    stations: stations.map((st) => ({ st, xy: pt(st) })).filter((x) => x.xy && x.xy[0] > 0 && x.xy[0] < W && x.xy[1] > 0 && x.xy[1] < H),
   };
   return geo;
 }
@@ -46,6 +47,11 @@ function mapSvg() {
           <line class="seg-line${segBy[s.id].source.kind === "measured" ? "" : " is-illustrative"}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-width="${width(segBy[s.id].aadt)}" />
           <title>${s.name}</title>
         </g>`,
+      )}
+    </g>
+    <g class="stations" aria-hidden="true">
+      ${g.stations.map(
+        ({ st, xy }) => html`<circle class="station" data-station="${st.id}" cx="${xy[0].toFixed(1)}" cy="${xy[1].toFixed(1)}" r="${(1.3 + Math.sqrt(st.dtv) / 120).toFixed(2)}"><title>${st.name} (${st.road}): ${int(st.dtv)} vehicles/day, ${st.year}</title></circle>`,
       )}
     </g>
     <g class="cities">
@@ -78,6 +84,22 @@ function updateMap(root, ctx) {
     el.classList.toggle("is-hl", hl.has(s.id));
     el.classList.toggle("is-sel", sel === s.id);
   }
+  root.querySelector(".stations")?.classList.toggle("is-hidden", !ctx.ui.showStations);
+  for (const el of root.querySelectorAll(".station.is-sel")) el.classList.remove("is-sel");
+  if (ctx.ui.sel.bast) root.querySelector(`.station[data-station="${CSS.escape(ctx.ui.sel.bast)}"]`)?.classList.add("is-sel");
+}
+
+function stationCard(st) {
+  return html`<section class="card" aria-label="Selected counting station">
+    <div class="row between"><h3>${st.name}</h3>${chip(st.road, "", { plain: true })}</div>
+    <p class="small source-line">${chip(`BASt ${st.year}`, "ok")} Automatic counting station ${st.id}, latest annual result</p>
+    <dl class="kv">
+      <dt>Vehicles per day (all days)</dt><dd>${int(st.dtv)}</dd>
+      <dt>Trucks</dt><dd>${st.hgv === null ? "—" : `${pct(st.hgv)} · ${int(st.dtv * st.hgv)}/day`}</dd>
+      <dt>Position</dt><dd class="mono">${st.lat.toFixed(4)}, ${st.lon.toFixed(4)}</dd>
+    </dl>
+    <p class="small muted">Measured value, unlike the hourly loads on the segments, which the twin estimates from these counts.</p>
+  </section>`;
 }
 
 function live(ctx) {
@@ -87,6 +109,7 @@ function live(ctx) {
   const now = segments.map((s) => ({ s, ...segmentHour(s, h) })).sort((a, b) => b.vc - a.vc);
   const top = now[0];
   const seg = ui.sel.segment ? SEG_BY_ID[ui.sel.segment] : null;
+  const station = ui.sel.bast ? STATION_BY_ID[ui.sel.bast] : null;
   const segNow = seg ? segmentHour(seg, h) : null;
   const segYear = seg ? segmentYear(seg) : null;
   return html`
@@ -100,6 +123,7 @@ function live(ctx) {
       <p class="muted small">Most loaded now: <strong>${top.s.name}</strong>, ${pct(top.vc)} of capacity, about ${kmh(top.kmh)}.</p>
       <p class="muted small">Volumes on ${MEASURED.count} of ${segments.length} segments are measured (${MEASURED.source}, up to ${MEASURED.year}); dashed segments are illustrative.</p>
     </section>
+    ${station ? stationCard(station) : ""}
     ${
       seg
         ? html`<section class="card" aria-label="Selected segment">
@@ -123,11 +147,14 @@ function live(ctx) {
             )}
             ${seg.from === "aachen" || seg.to === "aachen" ? html`<p class="small"><a href="#aachen">This segment feeds the Aachen city twin →</a></p>` : ""}
           </section>`
-        : html`<p class="muted small hint">Click a motorway segment for its numbers.</p>`
+        : station
+          ? ""
+          : html`<p class="muted small hint">Click a motorway segment or a counting station for its numbers.</p>`
     }`;
 }
 
 export function mount(view, ctx) {
+  ctx.ui.showStations ??= true;
   view.innerHTML = String(html`
     <div class="view-head">
       <div>
@@ -139,6 +166,7 @@ export function mount(view, ctx) {
         <span><i class="swatch" style="background:var(--warn)"></i>70–95%</span>
         <span><i class="swatch" style="background:var(--crit)"></i>congested</span>
         <span>line width = vehicles per day · dashed = illustrative</span>
+        <button type="button" class="btn btn-ghost legend-toggle" data-toggle-stations aria-pressed="${ctx.ui.showStations}"><i class="swatch station-swatch"></i>${int(stations.length)} BASt counting stations</button>
       </div>
     </div>
     <div class="layout">
@@ -159,11 +187,25 @@ export function mount(view, ctx) {
   const map = view.querySelector(".map-country");
   const pick = (el) => {
     ctx.ui.sel.segment = ctx.ui.sel.segment === el.dataset.seg ? null : el.dataset.seg;
+    ctx.ui.sel.bast = null;
     update(view, ctx);
   };
   map.addEventListener("click", (e) => {
+    const st = e.target.closest(".station");
+    if (st && ctx.ui.showStations) {
+      ctx.ui.sel.bast = ctx.ui.sel.bast === st.dataset.station ? null : st.dataset.station;
+      ctx.ui.sel.segment = null;
+      update(view, ctx);
+      return;
+    }
     const el = e.target.closest(".seg");
     if (el) pick(el);
+  });
+  view.querySelector("[data-toggle-stations]").addEventListener("click", (e) => {
+    ctx.ui.showStations = !ctx.ui.showStations;
+    e.currentTarget.setAttribute("aria-pressed", String(ctx.ui.showStations));
+    if (!ctx.ui.showStations) ctx.ui.sel.bast = null;
+    update(view, ctx);
   });
   map.addEventListener("keydown", (e) => {
     const el = e.target.closest(".seg");

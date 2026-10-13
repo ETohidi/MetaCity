@@ -43,6 +43,10 @@ export const segments = SEGMENTS.map((s) => {
 
 export const MEASURED = { source: MOTORWAYS.source, url: MOTORWAYS.url, year: MOTORWAYS.year, count: segments.filter((s) => s.source.kind === "measured").length };
 
+/** Every motorway counting station's latest count (BASt, 2020 or later), for the map layer. */
+export const stations = MOTORWAYS.stations.map((row) => Object.fromEntries(MOTORWAYS.stationFields.map((f, i) => [f, row[i]])));
+export const STATION_BY_ID = Object.fromEntries(stations.map((s) => [s.id, s]));
+
 export const cities = CITIES;
 export const SEG_BY_ID = Object.fromEntries(segments.map((s) => [s.id, s]));
 

@@ -66,6 +66,7 @@ tests and deploys `web/` to GitHub Pages.
 | Data | Status | Source |
 |---|---|---|
 | Motorway volumes, truck shares, lanes (Germany level) | **Measured** on 37 of 41 segments | BASt automatic counting stations, 2020–2024, aggregated per segment |
+| Motorway counting stations on the Germany map | **Measured**: 1,103 stations, latest count each | BASt automatic counting stations |
 | Aachen motorway gateways | **Measured** where a station sits at the gateway | BASt (AC-Vetschau, AK Aachen (O), AC-Lichtenbusch) |
 | Street lanes and speed limits (Aachen level) | **Real** for 28 of 31 street links | © OpenStreetMap contributors, ODbL |
 | Population and jobs per district | Illustrative (rounded) | – |
